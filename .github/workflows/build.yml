@@ -1,0 +1,71 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Decrypt signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Добавьте секрет KEYSTORE_PASSWORD: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          printf %s "$KEYSTORE_PASSWORD" > "$RUNNER_TEMP/kspw"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in app/release.keystore.enc -out app/release.keystore -pass file:"$RUNNER_TEMP/kspw"
+          rm "$RUNNER_TEMP/kspw"
+
+      - name: Build release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare release files
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk BMWFlow.apk
+          rm -f app/release.keystore
+          python3 - <<'PY'
+          import json, os, subprocess
+          n = int(os.environ["GITHUB_RUN_NUMBER"])
+          repo = os.environ["GITHUB_REPOSITORY"]
+          notes = subprocess.check_output(["git", "log", "-1", "--pretty=%B"]).decode().split("\n\n")[0].strip()
+          info = {
+              "versionCode": n,
+              "versionName": f"1.0.{n}",
+              "notes": notes,
+              "apkUrl": f"https://github.com/{repo}/releases/download/build-{n}/BMWFlow.apk",
+          }
+          json.dump(info, open("version.json", "w"), ensure_ascii=False)
+          print(info)
+          PY
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: BMW Flow 1.0.${{ github.run_number }}
+          files: |
+            BMWFlow.apk
+            version.json
+          make_latest: true
