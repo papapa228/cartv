@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Flow" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/flow_bg</item>
+        <item name="android:colorBackground">@color/flow_bg</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Activity</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:navigationBarColor">@color/flow_bg</item>
+        <item name="android:statusBarColor">@color/flow_bg</item>
+        <item name="android:colorAccent">@color/flow_accent</item>
+    </style>
+
+    <style name="Theme.Flow.Settings" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/flow_bg</item>
+        <item name="android:colorAccent">@color/flow_accent</item>
+        <item name="android:alertDialogTheme">@android:style/Theme.Material.Dialog.Alert</item>
+    </style>
+</resources>
